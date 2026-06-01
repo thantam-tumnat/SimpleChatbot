@@ -1,36 +1,48 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Chatbot9Arm - AI Chat Application
 
-## Getting Started
+แชทบอท AI ของ 9Arm บนิด้วย Next.js และ Tailwind CSS
 
-First, run the development server:
+## การติดตั้ง
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cd chatbot9arm-web
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## การรันในเครื่อง
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+# สร้างไฟล์ .env.local
+cp .env.example .env.local
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# แก้ไข API key ใน .env.local
+npm run dev
+```
 
-## Learn More
+## การ deploy บน Vercel
 
-To learn more about Next.js, take a look at the following resources:
+1. Push code ขึ้น GitHub
+2. ไปที่ [vercel.com](https://vercel.com) → Import repository
+3. ไปที่ **Settings → Environment Variables** แลัวเพิ่ม:
+   - `ANTHROPIC_API_KEY` = API key ของคุณ
+   - `ANTHROPIC_BASE_URL` = https://gateway.9arm.co
+4. Deploy!
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## โครงสร้างโปรเจกต์
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+src/
+├── app/
+│   ├── api/chat/route.ts    # API proxy ไปยััง 9Arm Gateway
+│   ├── components/
+│   │   ├── ChatInput.tsx    # UI หลัก (messages + input)
+│   │   └── ChatMessage.tsx  # Component แสดง message
+│   ├── layout.tsx           # Layout หลัก
+│   └── page.tsx             # หน้าหลัก
+```
 
-## Deploy on Vercel
+## หมายเหตุความปลอดภัย
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **ห้าม commit .env.local** ขึ้น git (มี .gitignore แล้ว)
+- API key จะถุกเก็บไวฝั่ง server เท่านั้น (ผ่าน Next.js API routes)
+- ไฟล์ .env.local ถูกรวมอยุ่ใน .gitignore แล้ว
