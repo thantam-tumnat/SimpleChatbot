@@ -9,7 +9,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "SuperDuperHolyUltimateSimpleAI - AI Chat",
-  description: "ได้ key มาฟรีเอามาแจกใหเพื่อนๆเล่น",
+  description: "ได้ key มาฟรีเอามาแจกให้เพื่อนๆเล่น",
 };
 
 export default function RootLayout({
