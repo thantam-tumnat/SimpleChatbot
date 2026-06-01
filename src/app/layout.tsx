@@ -8,8 +8,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Chatbot9Arm - AI Chat",
-  description: "แชทบอท AI ของ 9Arm",
+  title: "SuperDuperHolyUltimateSimpleAI - AI Chat",
+  description: "ได้ key มาฟรีเอามาแจกใหเพื่อนๆเล่น",
 };
 
 export default function RootLayout({
