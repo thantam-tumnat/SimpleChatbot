@@ -76,8 +76,8 @@ export default function ChatInput() {
             <div className="w-12 h-12 rounded-full bg-black flex items-center justify-center mb-4">
               <Bot className="w-6 h-6 text-white" />
             </div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-1">Chatbot9Arm</h2>
-            <p className="text-sm text-gray-500">ถามอะไรมาไดเลย ผมพรอมชวยเหลือนะ</p>
+            <h2 className="text-xl font-semibold text-gray-900 mb-1">Super duper holy ultimate AI</h2>
+            <p className="text-sm text-gray-500">ว่ามาโลด</p>
           </div>
         ) : (
           <div className="space-y-4 max-w-2xl mx-auto">

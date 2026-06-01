@@ -13,7 +13,7 @@ export default function Home() {
               <path d="M2 12l10 5 10-5" />
             </svg>
           </div>
-          <span className="text-sm font-medium text-gray-900">Chatbot9Arm</span>
+          <span className="text-sm font-medium text-gray-900">SuperDuperHolyUltimateSimpleAI</span>
         </div>
       </header>
 
