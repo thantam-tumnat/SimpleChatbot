@@ -1,4 +1,5 @@
-import { User, Sparkles } from "lucide-react";
+import Avatar from "./ui/Avatar";
+import Badge from "./ui/Badge";
 
 interface Message {
   role: "user" | "assistant";
@@ -17,9 +18,7 @@ export default function ChatMessage({ message }: ChatMessageProps) {
     <div className={`flex items-start gap-3 ${isUser ? "justify-end" : "justify-start"} transition-all duration-300`}>
       {/* AI avatar */}
       {!isUser && (
-        <div className={`flex-shrink-0 w-7 h-7 rounded-full bg-black flex items-center justify-center mt-1 transition-opacity ${message.isForgotten ? "opacity-30" : ""}`}>
-          <Sparkles className="w-3.5 h-3.5 text-white" />
-        </div>
+        <Avatar role="assistant" isForgotten={message.isForgotten} />
       )}
 
       {/* Bubble with optional forgotten label */}
@@ -36,19 +35,16 @@ export default function ChatMessage({ message }: ChatMessageProps) {
           </p>
         </div>
         {message.isForgotten && (
-          <span className="text-[10px] text-gray-400 font-medium px-1 select-none">
+          <Badge variant="forgotten">
             ลืมแล้ว (นอกขอบเขตความจำ)
-          </span>
+          </Badge>
         )}
       </div>
 
       {/* User avatar */}
       {isUser && (
-        <div className={`flex-shrink-0 w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center mt-1 transition-opacity ${message.isForgotten ? "opacity-30" : ""}`}>
-          <User className="w-3.5 h-3.5 text-gray-600" />
-        </div>
+        <Avatar role="user" isForgotten={message.isForgotten} />
       )}
     </div>
   );
 }
-

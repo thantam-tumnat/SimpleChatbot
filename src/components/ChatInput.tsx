@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import { Send, Bot, Trash2 } from "lucide-react";
 import ChatMessage from "./ChatMessage";
+import Button from "./ui/Button";
+import Progress from "./ui/Progress";
 
 interface Message {
   role: "user" | "assistant";
@@ -146,7 +148,7 @@ export default function ChatInput() {
   const tokenPercentage = Math.min(Math.round((activeTokens / TOKEN_LIMIT) * 100), 100);
 
   return (
-    <div className="flex flex-col h-full bg-gray-50">
+    <div className="flex flex-col h-full bg-gray-50 text-gray-900">
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-4 sm:px-6 pt-6 pb-16 relative">
         {messages.length === 0 ? (
@@ -179,44 +181,6 @@ export default function ChatInput() {
           </div>
         )}
         <div ref={messagesEndRef} />
-
-        {/* Floating Context Memory Pill (Bottom Right) */}
-        {messages.length > 0 && (
-          <div className="absolute bottom-4 right-6 z-10">
-            <div className="group flex items-center bg-white/85 backdrop-blur-md border border-gray-200/80 shadow-md hover:shadow-lg rounded-full px-3 py-1.5 transition-all duration-300 ease-in-out cursor-default select-none">
-              {/* Pulse Indicator */}
-              <span className="relative flex h-2 w-2 mr-2">
-                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
-                  tokenPercentage < 50 ? "bg-emerald-400" : tokenPercentage < 80 ? "bg-amber-400" : "bg-rose-400"
-                }`} />
-                <span className={`relative inline-flex rounded-full h-2 w-2 ${
-                  tokenPercentage < 50 ? "bg-emerald-500" : tokenPercentage < 80 ? "bg-amber-500" : "bg-rose-500"
-                }`} />
-              </span>
-
-              {/* Progress Bar */}
-              <div className="w-12 h-1 bg-gray-200/60 rounded-full overflow-hidden relative">
-                <div
-                  className={`h-full transition-all duration-500 rounded-full ${
-                    tokenPercentage < 50
-                      ? "bg-gradient-to-r from-emerald-400 to-emerald-500"
-                      : tokenPercentage < 80
-                      ? "bg-gradient-to-r from-amber-400 to-amber-500"
-                      : "bg-gradient-to-r from-rose-500 to-red-600"
-                  }`}
-                  style={{ width: `${tokenPercentage}%` }}
-                />
-              </div>
-
-              {/* Hover Details */}
-              <div className="max-w-0 opacity-0 overflow-hidden group-hover:max-w-xs group-hover:opacity-100 transition-all duration-300 ease-in-out flex items-center text-[10px] font-bold text-gray-500 whitespace-nowrap">
-                <span className="ml-2 pl-2 border-l border-gray-200">
-                  {activeTokens.toLocaleString()} / {TOKEN_LIMIT.toLocaleString()} ({tokenPercentage}%)
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Input area */}
@@ -224,13 +188,13 @@ export default function ChatInput() {
         {/* Actions panel */}
         {messages.length > 0 && (
           <div className="max-w-2xl w-full mx-auto flex items-center justify-end text-xs text-gray-500">
-            <button
+            <Button
+              variant="danger"
               onClick={handleClearChat}
-              className="flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-red-600 transition-colors font-medium cursor-pointer border border-transparent hover:border-gray-200"
             >
               <Trash2 className="w-3.5 h-3.5" />
               ล้างแชต (Clear)
-            </button>
+            </Button>
           </div>
         )}
 
@@ -247,17 +211,44 @@ export default function ChatInput() {
               className="flex-1 bg-transparent resize-none outline-none text-[15px] text-gray-900 placeholder-gray-400 py-1 leading-relaxed"
               disabled={isLoading}
             />
-            <button
+
+            {/* Context Memory Pill (ข้างปุ่มส่ง) */}
+            {messages.length > 0 && (
+              <div className="flex items-center self-center mr-1">
+                <div className="group flex items-center bg-transparent hover:bg-gray-200/60 rounded-full px-2 py-1 transition-all duration-300 ease-in-out cursor-default select-none">
+                  {/* Pulse Indicator */}
+                  <span className="relative flex h-2 w-2 mr-1.5">
+                    <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                      tokenPercentage < 50 ? "bg-emerald-400" : tokenPercentage < 80 ? "bg-amber-400" : "bg-rose-400"
+                    }`} />
+                    <span className={`relative inline-flex rounded-full h-2 w-2 ${
+                      tokenPercentage < 50 ? "bg-emerald-500" : tokenPercentage < 80 ? "bg-amber-500" : "bg-rose-500"
+                    }`} />
+                  </span>
+
+                  {/* Reusable Progress bar */}
+                  <Progress value={tokenPercentage} />
+
+                  {/* Hover Details */}
+                  <div className="max-w-0 opacity-0 overflow-hidden group-hover:max-w-xs group-hover:opacity-100 transition-all duration-300 ease-in-out flex items-center text-[10px] font-bold text-gray-500 whitespace-nowrap">
+                    <span className="ml-1.5 pl-1.5 border-l border-gray-200">
+                      {activeTokens.toLocaleString()} / {TOKEN_LIMIT.toLocaleString()} ({tokenPercentage}%)
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <Button
+              variant="circle"
               onClick={handleSubmit}
               disabled={isLoading || !input.trim()}
-              className="flex-shrink-0 w-8 h-8 rounded-full bg-black text-white flex items-center justify-center hover:bg-gray-800 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
             >
               <Send className="w-4 h-4" />
-            </button>
+            </Button>
           </div>
         </div>
       </div>
     </div>
   );
 }
-
