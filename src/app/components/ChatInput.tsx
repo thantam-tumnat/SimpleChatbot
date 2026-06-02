@@ -1,12 +1,65 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, Bot } from "lucide-react";
+import { Send, Bot, Trash2 } from "lucide-react";
 import ChatMessage from "./ChatMessage";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
+  isForgotten?: boolean;
+}
+
+const TOKEN_LIMIT = 8000;
+
+function estimateTokens(text: string): number {
+  // Approximate tokens for a mix of Thai and English text:
+  // Thai characters: ~1.8 characters per token
+  // English/others: ~4 characters per token
+  const thaiRegex = /[\u0e00-\u0e7f]/g;
+  const thaiMatches = text.match(thaiRegex);
+  const thaiCharCount = thaiMatches ? thaiMatches.length : 0;
+  
+  const otherText = text.replace(thaiRegex, '');
+  const otherCharCount = otherText.length;
+  
+  return Math.ceil(thaiCharCount / 1.8) + Math.ceil(otherCharCount / 4);
+}
+
+function estimateMessageTokens(msg: Message): number {
+  return estimateTokens(msg.content) + 4; // Add 4 tokens overhead for role/formatting
+}
+
+function updateMessageContext(msgs: Message[]): Message[] {
+  let totalTokens = 0;
+  const updated = msgs.map(m => ({ ...m, isForgotten: false }));
+  
+  let cutoffIndex = -1;
+  // Evaluate from newest to oldest
+  for (let i = updated.length - 1; i >= 0; i--) {
+    const msgTokens = estimateMessageTokens(updated[i]);
+    if (totalTokens + msgTokens > TOKEN_LIMIT) {
+      cutoffIndex = i;
+      break;
+    }
+    totalTokens += msgTokens;
+  }
+  
+  // Mark all messages up to the cutoff index as forgotten
+  if (cutoffIndex !== -1) {
+    for (let i = 0; i <= cutoffIndex; i++) {
+      updated[i].isForgotten = true;
+    }
+  }
+  
+  // Polish: Ensure the first active message starts with a 'user' role
+  // to avoid sending an orphaned assistant reply at the beginning of the context.
+  const firstActiveIdx = updated.findIndex(m => !m.isForgotten);
+  if (firstActiveIdx !== -1 && updated[firstActiveIdx].role === "assistant") {
+    updated[firstActiveIdx].isForgotten = true;
+  }
+  
+  return updated;
 }
 
 export default function ChatInput() {
@@ -31,7 +84,8 @@ export default function ChatInput() {
     if (!input.trim() || isLoading) return;
 
     const userMessage: Message = { role: "user", content: input.trim() };
-    const updated = [...messages, userMessage];
+    const withNewUserMsg = [...messages, userMessage];
+    const updated = updateMessageContext(withNewUserMsg);
     setMessages(updated);
     setInput("");
     setIsLoading(true);
@@ -39,22 +93,35 @@ export default function ChatInput() {
     if (textareaRef.current) textareaRef.current.style.height = "auto";
 
     try {
+      // Send only non-forgotten messages to the API
+      const activeMessages = updated
+        .filter(m => !m.isForgotten)
+        .map(({ role, content }) => ({ role, content }));
+
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: updated }),
+        body: JSON.stringify({ messages: activeMessages }),
       });
 
       if (!res.ok) throw new Error("Failed");
 
       const data = await res.json();
+      const rawReplyContent = data.choices?.[0]?.message?.content || "Sorry, something went wrong.";
       const reply: Message = {
         role: "assistant",
-        content: data.choices?.[0]?.message?.content || "Sorry, something went wrong.",
+        content: rawReplyContent,
       };
-      setMessages([...updated, reply]);
+      
+      setMessages((prev) => {
+        const withAssistantReply = [...prev, reply];
+        return updateMessageContext(withAssistantReply);
+      });
     } catch {
-      setMessages([...updated, { role: "assistant", content: "Something went wrong. Try again." }]);
+      setMessages((prev) => {
+        const errorReply: Message = { role: "assistant", content: "Something went wrong. Try again." };
+        return [...prev, errorReply];
+      });
     } finally {
       setIsLoading(false);
     }
@@ -67,10 +134,21 @@ export default function ChatInput() {
     }
   };
 
+  const handleClearChat = () => {
+    if (window.confirm("คุณต้องการล้างประวัติการแชตทั้งหมดใช่หรือไม่?")) {
+      setMessages([]);
+    }
+  };
+
+  // Calculate memory metrics
+  const activeMessages = messages.filter(m => !m.isForgotten);
+  const activeTokens = activeMessages.reduce((sum, m) => sum + estimateMessageTokens(m), 0);
+  const tokenPercentage = Math.min(Math.round((activeTokens / TOKEN_LIMIT) * 100), 100);
+
   return (
     <div className="flex flex-col h-full bg-gray-50">
       {/* Messages area */}
-      <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6">
+      <div className="flex-1 overflow-y-auto px-4 sm:px-6 pt-6 pb-16 relative">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
             <div className="w-12 h-12 rounded-full bg-black flex items-center justify-center mb-4">
@@ -101,11 +179,63 @@ export default function ChatInput() {
           </div>
         )}
         <div ref={messagesEndRef} />
+
+        {/* Floating Context Memory Pill (Bottom Right) */}
+        {messages.length > 0 && (
+          <div className="absolute bottom-4 right-6 z-10">
+            <div className="group flex items-center bg-white/85 backdrop-blur-md border border-gray-200/80 shadow-md hover:shadow-lg rounded-full px-3 py-1.5 transition-all duration-300 ease-in-out cursor-default select-none">
+              {/* Pulse Indicator */}
+              <span className="relative flex h-2 w-2 mr-2">
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                  tokenPercentage < 50 ? "bg-emerald-400" : tokenPercentage < 80 ? "bg-amber-400" : "bg-rose-400"
+                }`} />
+                <span className={`relative inline-flex rounded-full h-2 w-2 ${
+                  tokenPercentage < 50 ? "bg-emerald-500" : tokenPercentage < 80 ? "bg-amber-500" : "bg-rose-500"
+                }`} />
+              </span>
+
+              {/* Progress Bar */}
+              <div className="w-12 h-1 bg-gray-200/60 rounded-full overflow-hidden relative">
+                <div
+                  className={`h-full transition-all duration-500 rounded-full ${
+                    tokenPercentage < 50
+                      ? "bg-gradient-to-r from-emerald-400 to-emerald-500"
+                      : tokenPercentage < 80
+                      ? "bg-gradient-to-r from-amber-400 to-amber-500"
+                      : "bg-gradient-to-r from-rose-500 to-red-600"
+                  }`}
+                  style={{ width: `${tokenPercentage}%` }}
+                />
+              </div>
+
+              {/* Hover Details */}
+              <div className="max-w-0 opacity-0 overflow-hidden group-hover:max-w-xs group-hover:opacity-100 transition-all duration-300 ease-in-out flex items-center text-[10px] font-bold text-gray-500 whitespace-nowrap">
+                <span className="ml-2 pl-2 border-l border-gray-200">
+                  {activeTokens.toLocaleString()} / {TOKEN_LIMIT.toLocaleString()} ({tokenPercentage}%)
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Input area */}
-      <div className="border-t border-gray-200 bg-white px-4 sm:px-6 py-4">
-        <div className="max-w-2xl mx-auto">
+      <div className="border-t border-gray-200 bg-white px-4 sm:px-6 py-4 flex flex-col gap-2">
+        {/* Actions panel */}
+        {messages.length > 0 && (
+          <div className="max-w-2xl w-full mx-auto flex items-center justify-end text-xs text-gray-500">
+            <button
+              onClick={handleClearChat}
+              className="flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-red-600 transition-colors font-medium cursor-pointer border border-transparent hover:border-gray-200"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              ล้างแชต (Clear)
+            </button>
+          </div>
+        )}
+
+        {/* Text input row */}
+        <div className="max-w-2xl w-full mx-auto">
           <div className="flex items-end gap-2 border border-gray-300 rounded-2xl bg-gray-50 focus-within:border-gray-400 focus-within:bg-white transition-colors px-3 py-2">
             <textarea
               ref={textareaRef}
@@ -130,3 +260,4 @@ export default function ChatInput() {
     </div>
   );
 }
+
