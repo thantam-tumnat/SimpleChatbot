@@ -1,7 +1,8 @@
-แชตบอตอย่างง่ายใช้โมเดล Qwen3.6 35b 
-Next.js 16 \n
-React 19 \n
-TypeScript \n
-TailwindCSS
+แชตบอตอย่างง่าย ใช้โมเดล Qwen3.6-35b
+
+Next.js 16
+React 19
+TypeScript
+Tailwind CSS
 
 [Demo บน Vercel](https://simple-chatbot-velvet.vercel.app) 
