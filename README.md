@@ -5,4 +5,4 @@ React 19 /
 TypeScript /
 Tailwind CSS
 
-[Demo บน Vercel](https://simple-chatbot-velvet.vercel.app) 
+[Demo บน Vercel](https://simple-chatbot-blond.vercel.app/) 
