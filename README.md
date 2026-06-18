@@ -5,4 +5,4 @@ React 19 /
 TypeScript /
 Tailwind CSS
 
-[Demo บน Vercel](https://simple-chatbot-3kv9uizsm-catumnat-3791s-projects.vercel.app) 
+[ลิงก์เล่นแชตบอต](https://simple-chatbot-3kv9uizsm-catumnat-3791s-projects.vercel.app) 
