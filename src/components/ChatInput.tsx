@@ -9,10 +9,20 @@ import Progress from "./ui/Progress";
 interface Message {
   role: "user" | "assistant";
   content: string;
+  thinking?: string;
   isForgotten?: boolean;
 }
 
 const TOKEN_LIMIT = 8000;
+
+function parseReply(raw: string): { thinking?: string; content: string } {
+  const thinkMatch = raw.match(/^<think>([\s\S]*?)<\/think>\s*/);
+  if (thinkMatch) {
+    const content = raw.slice(thinkMatch[0].length).trim();
+    return { thinking: thinkMatch[1].trim(), content: content || raw };
+  }
+  return { content: raw };
+}
 
 function estimateTokens(text: string): number {
   // Approximate tokens for a mix of Thai and English text:
@@ -110,9 +120,11 @@ export default function ChatInput() {
 
       const data = await res.json();
       const rawReplyContent = data.choices?.[0]?.message?.content || "Sorry, something went wrong.";
+      const { thinking, content } = parseReply(rawReplyContent);
       const reply: Message = {
         role: "assistant",
-        content: rawReplyContent,
+        content,
+        thinking,
       };
       
       setMessages((prev) => {
