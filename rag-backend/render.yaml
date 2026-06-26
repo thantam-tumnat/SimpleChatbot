@@ -1,0 +1,30 @@
+# Render Blueprint — deploy backend อัตโนมัติ
+# ตั้ง root directory = rag-backend ตอนสร้าง service บน Render
+services:
+  - type: web
+    name: rag-backend
+    runtime: python
+    plan: free
+    rootDir: rag-backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: LLM_API_KEY
+        sync: false
+      - key: LLM_BASE_URL
+        value: https://gateway.9arm.co/v1
+      - key: LLM_MODEL
+        value: qwen3.6-35b-a3b
+      - key: JINA_API_KEY
+        sync: false
+      - key: JINA_MODEL
+        value: jina-embeddings-v3
+      - key: EMBED_DIM
+        value: "1024"
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false

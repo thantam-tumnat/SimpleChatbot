@@ -1,0 +1,17 @@
+# --- web ---
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-multipart==0.0.20        # รับไฟล์อัปโหลด (/ingest)
+python-dotenv==1.0.1
+
+# --- LLM / graph (เบา ไม่มี torch) ---
+langchain-core==0.3.29
+langchain-openai==0.2.14        # ต่อ gateway 9arm
+langgraph==0.2.61               # flow retrieve->grade->generate
+
+# --- vector store ---
+supabase==2.31.0                # client ต่อ pgvector (รองรับ key แบบใหม่ sb_secret_)
+
+# --- เอกสาร / embedding ---
+pymupdf==1.25.1                 # อ่าน PDF (fitz)
+requests==2.32.3                # เรียก Jina API
