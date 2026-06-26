@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, Bot, Trash2 } from "lucide-react";
+import { Send, Bot, Trash2, Paperclip, FileUp } from "lucide-react";
 import ChatMessage from "./ChatMessage";
 import Button from "./ui/Button";
 import Progress from "./ui/Progress";
@@ -68,8 +68,22 @@ export default function ChatInput() {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const sessionIdRef = useRef<string>("");
+
+  // สร้าง session id ครั้งเดียวต่อแท็บ (ปิดแท็บแล้วหาย = ephemeral)
+  useEffect(() => {
+    let sid = sessionStorage.getItem("ragSessionId");
+    if (!sid) {
+      sid = crypto.randomUUID();
+      sessionStorage.setItem("ragSessionId", sid);
+    }
+    sessionIdRef.current = sid;
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -103,7 +117,7 @@ export default function ChatInput() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: activeMessages }),
+        body: JSON.stringify({ messages: activeMessages, sessionId: sessionIdRef.current }),
       });
 
       if (!res.ok) throw new Error("Failed");
@@ -129,6 +143,61 @@ export default function ChatInput() {
     }
   };
 
+  // เพิ่มข้อความแจ้งสถานะลงในแชต (ฝั่ง assistant)
+  const pushNote = (content: string) => {
+    setMessages((prev) => [...prev, { role: "assistant", content }]);
+  };
+
+  const handleUpload = async (file: File) => {
+    if (!file.name.toLowerCase().endsWith(".pdf")) {
+      pushNote("⚠️ รองรับเฉพาะไฟล์ PDF เท่านั้นครับ");
+      return;
+    }
+    setIsUploading(true);
+    pushNote(`📄 กำลังเพิ่มเอกสาร "${file.name}" เข้าระบบ...`);
+
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      form.append("sessionId", sessionIdRef.current);
+
+      const res = await fetch("/api/ingest", { method: "POST", body: form });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "อัปโหลดไม่สำเร็จ");
+
+      pushNote(
+        `✅ เพิ่ม "${data.filename}" สำเร็จ (${data.chunks_added} ส่วน) — ถามเกี่ยวกับเอกสารนี้ได้เลย`
+      );
+    } catch (err) {
+      pushNote(`❌ เพิ่มเอกสารไม่สำเร็จ: ${(err as Error).message}`);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) handleUpload(file);
+    e.target.value = ""; // reset เพื่อให้เลือกไฟล์เดิมซ้ำได้
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleUpload(file);
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -136,9 +205,18 @@ export default function ChatInput() {
     }
   };
 
-  const handleClearChat = () => {
-    if (window.confirm("คุณต้องการล้างประวัติการแชตทั้งหมดใช่หรือไม่?")) {
-      setMessages([]);
+  const handleClearChat = async () => {
+    if (!window.confirm("ล้างแชตและลบเอกสารที่อัปโหลดทั้งหมดใช่หรือไม่?")) return;
+    setMessages([]);
+    // ลบเอกสารของเซสชันนี้ทิ้งด้วย (ephemeral — ใช้แล้วทิ้ง)
+    try {
+      await fetch("/api/clear", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: sessionIdRef.current }),
+      });
+    } catch {
+      // เงียบไว้ — ถึงลบไม่สำเร็จก็มี TTL ลบให้เองภายหลัง
     }
   };
 
@@ -148,7 +226,22 @@ export default function ChatInput() {
   const tokenPercentage = Math.min(Math.round((activeTokens / TOKEN_LIMIT) * 100), 100);
 
   return (
-    <div className="flex flex-col h-full bg-gray-50 text-gray-900">
+    <div
+      className="relative flex flex-col h-full bg-gray-50 text-gray-900"
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {/* Drag & drop overlay */}
+      {isDragging && (
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm pointer-events-none">
+          <div className="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-white/80 bg-white/10 px-10 py-8">
+            <FileUp className="w-10 h-10 text-white" />
+            <span className="text-white font-medium">วางไฟล์ PDF ที่นี่เพื่อเพิ่มเข้าระบบ</span>
+          </div>
+        </div>
+      )}
+
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-4 sm:px-6 pt-6 pb-16 relative">
         {messages.length === 0 ? (
@@ -201,6 +294,24 @@ export default function ChatInput() {
         {/* Text input row */}
         <div className="max-w-2xl w-full mx-auto">
           <div className="flex items-end gap-2 border border-gray-300 rounded-2xl bg-gray-50 focus-within:border-gray-400 focus-within:bg-white transition-colors px-3 py-2">
+            {/* Hidden file input + ปุ่มอัปโหลด PDF */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/pdf"
+              className="hidden"
+              onChange={handleFileSelect}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+              title="อัปโหลด PDF เข้าระบบ"
+              className="self-center p-1.5 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-200/60 transition-colors disabled:opacity-50"
+            >
+              <Paperclip className="w-4 h-4" />
+            </button>
+
             <textarea
               ref={textareaRef}
               value={input}
