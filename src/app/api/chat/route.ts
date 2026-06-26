@@ -1,50 +1,53 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || "";
-const ANTHROPIC_BASE_URL = process.env.ANTHROPIC_BASE_URL || "https://gateway.9arm.co";
-
-if (!ANTHROPIC_API_KEY) {
-  throw new Error("Missing ANTHROPIC_API_KEY environment variable");
-}
+// URL ของ RAG backend (FastAPI)
+// - ตอน dev: http://localhost:8000
+// - ตอน deploy: ใส่ URL ของ Render ใน environment variable
+const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { messages } = body;
+    const { messages, sessionId } = body;
 
-    if (!messages || !Array.isArray(messages)) {
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json({ error: "Invalid request: messages are required" }, { status: 400 });
     }
+    if (!sessionId) {
+      return NextResponse.json({ error: "Invalid request: sessionId is required" }, { status: 400 });
+    }
 
-    const response = await fetch(`${ANTHROPIC_BASE_URL}/v1/chat/completions`, {
+    // RAG backend รับ "คำถามเดี่ยว" -> ใช้ข้อความล่าสุดของ user เป็นคำถาม
+    const lastUser = [...messages].reverse().find((m) => m.role === "user");
+    if (!lastUser) {
+      return NextResponse.json({ error: "No user message found" }, { status: 400 });
+    }
+
+    // เรียก RAG backend: retrieve -> grade -> generate (กรองเฉพาะ session นี้)
+    const res = await fetch(`${BACKEND_URL}/chat`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${ANTHROPIC_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "qwen3.6-35b-a3b",
-        max_tokens: 4096,
-        messages,
-      }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question: lastUser.content, session_id: sessionId }),
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("API error:", errorText);
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error("RAG backend error:", errorText);
       return NextResponse.json(
-        { error: "Failed to get response from AI", details: errorText },
-        { status: response.status }
+        { error: "Failed to get response from RAG backend", details: errorText },
+        { status: res.status }
       );
     }
 
-    const data = await response.json();
-    return NextResponse.json(data);
+    const data = await res.json(); // { answer, context }
+
+    // แปลงรูปแบบให้ ChatInput เดิมอ่านได้ (รูปแบบเดียวกับ OpenAI)
+    return NextResponse.json({
+      choices: [{ message: { role: "assistant", content: data.answer } }],
+      context: data.context, // เผื่ออยากเอา source ไปโชว์ทีหลัง
+    });
   } catch (error) {
     console.error("Chat API error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
