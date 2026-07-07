@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, Bot, Trash2, Paperclip, FileUp } from "lucide-react";
+import { Send, Bot, Trash2, Paperclip, FileUp, Shield, MessageSquare, Clock } from "lucide-react";
 import ChatMessage from "./ChatMessage";
 import Button from "./ui/Button";
 import Progress from "./ui/Progress";
@@ -12,7 +12,7 @@ interface Message {
   isForgotten?: boolean;
 }
 
-const TOKEN_LIMIT = 8000;
+const TOKEN_LIMIT = 16000;
 
 function estimateTokens(text: string): number {
   // Approximate tokens for a mix of Thai and English text:
@@ -245,12 +245,50 @@ export default function ChatInput() {
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-4 sm:px-6 pt-6 pb-16 relative">
         {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center">
-            <div className="w-12 h-12 rounded-full bg-black flex items-center justify-center mb-4">
-              <Bot className="w-6 h-6 text-white" />
+          <div className="flex flex-col items-center justify-center min-h-[80%] max-w-3xl mx-auto py-12 px-4 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-black flex items-center justify-center mb-5 shadow-md">
+              <Bot className="w-7 h-7 text-white" />
             </div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-1">Super duper holy ultimate AI</h2>
-            <p className="text-sm text-gray-500">ว่ามาโลด</p>
+            <h2 className="text-2xl font-bold text-gray-900 tracking-tight mb-2">Super duper holy ultimate AI</h2>
+            <p className="text-sm text-gray-500 max-w-md mb-10 leading-relaxed">
+              ผู้ช่วยถามตอบเอกสารอัจฉริยะแบบใช้งานชั่วคราว สะดวก รวดเร็ว และเป็นส่วนตัว
+            </p>
+            
+            {/* Grid of features */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 w-full">
+              {/* Feature 1 */}
+              <div className="bg-white border border-gray-200/80 p-5 rounded-2xl flex flex-col items-center text-center shadow-sm hover:border-gray-300 transition-all duration-200">
+                <div className="w-10 h-10 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-700 mb-3.5">
+                  <Paperclip className="w-5 h-5" />
+                </div>
+                <h3 className="font-semibold text-sm text-gray-900 mb-1.5">แนบเอกสาร PDF</h3>
+                <p className="text-xs text-gray-500 leading-relaxed">
+                  คลิกปุ่ม 📎 หรือลากวางไฟล์ PDF เพื่อให้ AI ใช้เป็นฐานข้อมูลเฉพาะส่วนตัวของคุณ
+                </p>
+              </div>
+
+              {/* Feature 2 */}
+              <div className="bg-white border border-gray-200/80 p-5 rounded-2xl flex flex-col items-center text-center shadow-sm hover:border-gray-300 transition-all duration-200">
+                <div className="w-10 h-10 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-700 mb-3.5">
+                  <MessageSquare className="w-5 h-5" />
+                </div>
+                <h3 className="font-semibold text-sm text-gray-900 mb-1.5">ถาม-ตอบความหมาย</h3>
+                <p className="text-xs text-gray-500 leading-relaxed">
+                  พิมพ์ถามตอบได้ตามปกติ AI จะค้นหาเนื้อหาเฉพาะจุดที่เกี่ยวข้องใน PDF มาวิเคราะห์และคำนวณคำตอบ
+                </p>
+              </div>
+
+              {/* Feature 3 */}
+              <div className="bg-white border border-gray-200/80 p-5 rounded-2xl flex flex-col items-center text-center shadow-sm hover:border-gray-300 transition-all duration-200">
+                <div className="w-10 h-10 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-700 mb-3.5">
+                  <Shield className="w-5 h-5" />
+                </div>
+                <h3 className="font-semibold text-sm text-gray-900 mb-1.5">ไม่มีการจัดเก็บข้อมูล</h3>
+                <p className="text-xs text-gray-500 leading-relaxed">
+                  ไม่มีการเก็บประวัติแชต ข้อมูลเอกสารทั้งหมดจะถูกลบทันทีเมื่อล้างแชต ปิดแท็บ หรือถูกล้างอัตโนมัติภายใน 24 ชม.
+                </p>
+              </div>
+            </div>
           </div>
         ) : (
           <div className="space-y-4 max-w-2xl mx-auto">
@@ -357,6 +395,12 @@ export default function ChatInput() {
             >
               <Send className="w-4 h-4" />
             </Button>
+          </div>
+          
+          {/* Footer Notice */}
+          <div className="mt-2.5 flex items-center justify-center gap-1.5 text-[11px] text-gray-400 select-none">
+            <Shield className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+            <span>ข้อมูลทั้งหมดจะไม่ถูกจัดเก็บถาวร (จะถูกลบเมื่อกดล้างแชต ปิดแท็บ หรือครบ 24 ชม.)</span>
           </div>
         </div>
       </div>
